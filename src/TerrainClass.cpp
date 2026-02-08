@@ -14,10 +14,8 @@
 
 using namespace godot;
 
-constexpr int chunk_voxel_size = 64;
-static_assert((chunk_voxel_size & 7) == 0, "chunk size must be a multiple of 8");
-constexpr int num_points_per_axis = chunk_voxel_size + 1;
-constexpr int num_points = num_points_per_axis * num_points_per_axis * num_points_per_axis;
+#include "terrain_constants.hpp"
+using namespace terrain_constants;
 
 void TerrainClass::_bind_methods()
 {
@@ -27,21 +25,9 @@ void TerrainClass::_bind_methods()
 	// Required to use call_deferred
 	ClassDB::bind_method(D_METHOD("_apply_mesh_data", "mesh", "arrays"), &TerrainClass::_apply_mesh_data);
 
-	ClassDB::bind_method(D_METHOD("get_base_height_offset"), &TerrainClass::get_base_height_offset);
-	ClassDB::bind_method(D_METHOD("set_base_height_offset", "base_height_offset"), &TerrainClass::set_base_height_offset);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "base_height_offset"), "set_base_height_offset", "get_base_height_offset");
-
-	ClassDB::bind_method(D_METHOD("get_height_base_noise"), &TerrainClass::get_height_base_noise);
-	ClassDB::bind_method(D_METHOD("set_height_base_noise", "height_base_noise"), &TerrainClass::set_height_base_noise);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "height_base_noise", PROPERTY_HINT_RESOURCE_TYPE, "FastNoiseLite"), "set_height_base_noise", "get_height_base_noise");
-
-	ClassDB::bind_method(D_METHOD("get_base_height_multiplier"), &TerrainClass::get_base_height_multiplier);
-	ClassDB::bind_method(D_METHOD("set_base_height_multiplier", "base_height_multiplier"), &TerrainClass::set_base_height_multiplier);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "base_height_multiplier"), "set_base_height_multiplier", "get_base_height_multiplier");
-
-	ClassDB::bind_method(D_METHOD("get_height_multiplier_noise"), &TerrainClass::get_height_multiplier_noise);
-	ClassDB::bind_method(D_METHOD("set_height_multiplier_noise", "height_multiplier_noise"), &TerrainClass::set_height_multiplier_noise);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "height_multiplier_noise", PROPERTY_HINT_RESOURCE_TYPE, "FastNoiseLite"), "set_height_multiplier_noise", "get_height_multiplier_noise");
+	ClassDB::bind_method(D_METHOD("get_chunk_generator"), &TerrainClass::get_chunk_generator);
+	ClassDB::bind_method(D_METHOD("set_chunk_generator", "chunk_generator"), &TerrainClass::set_chunk_generator);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "chunk_generator", PROPERTY_HINT_RESOURCE_TYPE, "ChunkGenerator"), "set_chunk_generator", "get_chunk_generator");
 }
 
 TerrainClass::~TerrainClass()
@@ -104,7 +90,7 @@ bool TerrainClass::init()
 	TypedArray<RDUniform> uniforms{};
 
 	// create a storage buffer that can hold our points.
-	points_buffer = local_rendering_device->storage_buffer_create(num_points * sizeof(float));
+	points_buffer = local_rendering_device->storage_buffer_create(POINTS_VOLUME * sizeof(float));
 
 	Ref<RDUniform> uniform_points{};
 	uniform_points.instantiate();
@@ -113,8 +99,7 @@ bool TerrainClass::init()
 	uniform_points->add_id(points_buffer);
 	uniforms.push_back(uniform_points);
 
-	constexpr int num_voxels = chunk_voxel_size * chunk_voxel_size * chunk_voxel_size;
-	constexpr int max_triangle_count = num_voxels * 5; // max tris per voxel is 5
+	constexpr int max_triangle_count = CHUNK_VOLUME * 5; // max tris per voxel is 5
 	constexpr int max_vertex_count = max_triangle_count * 3;
 
 	vertex_buffer_byte_count = max_vertex_count * sizeof(float) * 3;
@@ -163,38 +148,6 @@ bool TerrainClass::init()
 	return true;
 }
 
-Vector<float> TerrainClass::_generate_height_map(int p_size, const Vector3 &p_chunk_world_pos) const
-{
-	Vector<float> height_map = Vector<float>();
-	height_map.resize(p_size * p_size);
-
-	if (!height_base_noise.is_valid())
-	{
-		print_error("height_base_noise is invalid");
-		return height_map;
-	}
-
-	if (!height_multiplier_noise.is_valid())
-	{
-		print_error("height_multiplier_noise is invalid");
-		return height_map;
-	}
-
-	for (int x = 0; x < p_size; x++)
-	{
-		for (int z = 0; z < p_size; z++)
-		{
-			Vector2 pos = Vector2(x + p_chunk_world_pos.x, z + p_chunk_world_pos.z);
-			float height_offset = base_height_offset + 100 * height_multiplier_noise->get_noise_2dv(pos);
-			float height_base = height_base_noise->get_noise_2dv(pos);
-			float height = height_offset + height_base * base_height_multiplier;
-			height_map.set(x + z * p_size, height);
-		}
-	}
-
-	return height_map;
-}
-
 void TerrainClass::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, Vector3i chunk_pos)
 {
 	if (rendering_thread_id == -1)
@@ -221,29 +174,7 @@ void TerrainClass::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, Vector3i chunk_
 		return;
 	}
 
-	PackedFloat32Array points{};
-	points.resize(num_points);
-	points.fill(0.0f);
-
-	Vector3 chunk_world_pos = chunk_pos * chunk_voxel_size;
-
-	Vector<float> height_map = _generate_height_map(num_points_per_axis, chunk_world_pos);
-
-	for (int x = 0; x < num_points_per_axis; x++) {
-		for (int z = 0; z < num_points_per_axis; z++) {
-			float height = height_map[x + z * num_points_per_axis];
-
-			for (int y = 0; y < num_points_per_axis; y++) {
-				Vector3 world_pos = chunk_world_pos + Vector3(x, y, z);
-
-				//float density = generate_density(world_pos, height);
-				float value = CLAMP(height - world_pos.y, 0.0f, 1.0f);
-				//value = CLAMP(value - density, 0.0f, 1.0f);
-
-				points[x + y * num_points_per_axis + z * num_points_per_axis * num_points_per_axis] = value;
-			}
-		}
-	}
+	PackedFloat32Array points = chunk_generator->generate_points(chunk_pos);
 
 	PackedByteArray points_byte_array = points.to_byte_array();
 
@@ -264,7 +195,7 @@ void TerrainClass::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, Vector3i chunk_
 	// bind our buffer uniform to our pipeline
 	local_rendering_device->compute_list_bind_uniform_set(compute_list_id, uniform_set, 0);
 	// specify how many workgroups to use
-	constexpr uint32_t group_size = chunk_voxel_size / 8;
+	constexpr uint32_t group_size = CHUNK_SIZE / 8;
 	local_rendering_device->compute_list_dispatch(compute_list_id, group_size, group_size, group_size);
 	// end the list of instructions
 	local_rendering_device->compute_list_end();

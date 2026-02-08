@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dh0oj81pufivs"]
+[gd_scene load_steps=8 format=3 uid="uid://dh0oj81pufivs"]
 
 [ext_resource type="Script" uid="uid://bi504r0doyid6" path="res://scripts/example.gd" id="1_n51mc"]
 [ext_resource type="Script" uid="uid://c7561n2mnt1m4" path="res://scripts/FreeCamera.gd" id="2_n51mc"]
@@ -7,15 +7,18 @@
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_wcwec"]
 
-[sub_resource type="TerrainClass" id="TerrainClass_ei00m"]
+[sub_resource type="ChunkGenerator" id="ChunkGenerator_ei00m"]
 height_base_noise = SubResource("FastNoiseLite_8lvy3")
 height_multiplier_noise = SubResource("FastNoiseLite_wcwec")
+
+[sub_resource type="TerrainClass" id="TerrainClass_ugfer"]
+chunk_generator = SubResource("ChunkGenerator_ei00m")
 
 [sub_resource type="BoxMesh" id="BoxMesh_2jas5"]
 
 [node name="Node" type="Node"]
 script = ExtResource("1_n51mc")
-terrain = SubResource("TerrainClass_ei00m")
+terrain = SubResource("TerrainClass_ugfer")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8409251, 0.10449457, 0)

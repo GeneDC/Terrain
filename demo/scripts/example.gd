@@ -15,14 +15,14 @@ func init() -> void:
 func generate_chunk_positions(radius: int) -> Array[Vector3i]:
 	var positions: Array[Vector3i] = []
 	for x in range(-radius, radius + 1):
-		for y in range(-radius, radius + 1):
+		for y in range(-5, 5 + 1):
 			for z in range(-radius, radius + 1):
 				positions.append(Vector3i(x, y, z))
 	
 	return positions
 	
 func _process(_delta_time: float) -> void:
-	for i in range(10):
+	for i in range(1):
 		if not chunk_positions.is_empty():
 			spawn_chunk(chunk_positions.pop_back())
 
