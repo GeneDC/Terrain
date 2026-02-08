@@ -28,7 +28,10 @@ public:
 	MeshGenerator() = default;
 	~MeshGenerator() override;
 
+	// Call once to setup. Creates local rendering device, loads shader, and setups the buffers and uniforms
 	bool init();
+	// Updates the array mesh using the compute shader results.
+	// Uses call_deferred to apply the mesh
 	void update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32Array points);
 
 protected:
@@ -58,8 +61,4 @@ private:
 	int colour_buffer_byte_count = -1;
 	RID colour_buffer;
 	RID count_buffer;
-
-	bool has_requested_chunk = false;
-	Ref<Thread> worker_thread;
-	bool exit_thread = false;
 };

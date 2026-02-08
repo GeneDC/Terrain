@@ -147,25 +147,25 @@ void MeshGenerator::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32A
 {
 	if (rendering_thread_id == -1)
 	{
-		print_error("make_mesh() called before init()!");
+		PRINT_ERROR("not initialised!");
 		return;
 	}
 
 	if (rendering_thread_id != OS::get_singleton()->get_thread_caller_id())
 	{
-		print_error("Thread id missmatch");
+		PRINT_ERROR("Thread id missmatch");
 		return;
 	}
 
 	if (!shader.is_valid())
 	{
-		print_error("Shader not initialized!");
+		PRINT_ERROR("Shader not initialized!");
 		return;
 	}
 
 	if (!local_rendering_device)
 	{
-		print_error("Not initalised");
+		PRINT_ERROR("Not initalised");
 		return;
 	}
 
