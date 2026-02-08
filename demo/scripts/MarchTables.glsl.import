@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://caqahixvvyp6d"
+path="res://.godot/imported/MarchTables.glsl-f529a5000fa21e95a6b5328249d8d3df.res"
+
+[deps]
+
+source_file="res://scripts/MarchTables.glsl"
+dest_files=["res://.godot/imported/MarchTables.glsl-f529a5000fa21e95a6b5328249d8d3df.res"]
+
+[params]
+

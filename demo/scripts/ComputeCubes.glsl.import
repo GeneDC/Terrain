@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://e5hvjescgcya"
+path="res://.godot/imported/ComputeCubes.glsl-98856e68e8cbab068a8912b051a870dd.res"
+
+[deps]
+
+source_file="res://scripts/ComputeCubes.glsl"
+dest_files=["res://.godot/imported/ComputeCubes.glsl-98856e68e8cbab068a8912b051a870dd.res"]
+
+[params]
+
