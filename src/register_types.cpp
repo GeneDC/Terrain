@@ -7,6 +7,7 @@
 
 #include "TerrainClass.h"
 #include "chunk_generator.h"
+#include "mesh_generator.h"
 
 using namespace godot;
 
@@ -17,6 +18,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	}
 	GDREGISTER_CLASS(TerrainClass);
 	GDREGISTER_CLASS(ChunkGenerator);
+	GDREGISTER_CLASS(MeshGenerator);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

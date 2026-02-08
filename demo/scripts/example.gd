@@ -10,7 +10,6 @@ func _ready() -> void:
 func init() -> void:
 	terrain.init()
 	chunk_positions = generate_chunk_positions(10)
-	pass
 
 func generate_chunk_positions(radius: int) -> Array[Vector3i]:
 	var positions: Array[Vector3i] = []
