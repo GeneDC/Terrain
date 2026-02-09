@@ -11,14 +11,16 @@
 #include <godot_cpp/classes/rd_shader_spirv.hpp>
 #include <godot_cpp/classes/fast_noise_lite.hpp>
 
-#include <godot_cpp/classes/thread.hpp>
-#include <godot_cpp/variant/callable.hpp>
-#include <godot_cpp/classes/mutex.hpp>
-#include <godot_cpp/classes/semaphore.hpp>
-
 #include "chunk_generator.h"
 
 using namespace godot;
+
+struct MeshData
+{
+	Vector3i chunk_pos{};
+	Array mesh_arrays{};
+	uint32_t vertex_count = 0;
+};
 
 class MeshGenerator : public RefCounted
 {
@@ -30,17 +32,13 @@ public:
 
 	// Call once to setup. Creates local rendering device, loads shader, and setups the buffers and uniforms
 	bool init();
-	// Updates the array mesh using the compute shader results.
-	// Uses call_deferred to apply the mesh
-	void update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32Array points);
+	// Returns MeshData for a ArrayMesh using the compute shader results.
+	[[nodiscard]] MeshData generate_mesh_data(Vector3i chunk_pos, PackedFloat32Array points);
 
 protected:
-	static void _bind_methods();
+	static void _bind_methods() {};
 
 private:
-	void _update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32Array points);
-	void _apply_mesh_data(Ref<ArrayMesh> array_mesh, Array mesh_arrays);
-
 	RenderingDevice* local_rendering_device = nullptr;
 
 	uint64_t rendering_thread_id = -1;

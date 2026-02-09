@@ -5,9 +5,10 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include "TerrainClass.h"
 #include "chunk_generator.h"
 #include "mesh_generator.h"
+#include "mesh_generator_pool.h"
+#include "chunk_loader.h"
 
 using namespace godot;
 
@@ -16,10 +17,12 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
-	GDREGISTER_CLASS(TerrainClass);
 	GDREGISTER_CLASS(ChunkGenerator);
 	GDREGISTER_CLASS(MeshGenerator);
+	GDREGISTER_CLASS(MeshGeneratorPool);
+	GDREGISTER_CLASS(ChunkLoader);
 }
+
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level)
 {

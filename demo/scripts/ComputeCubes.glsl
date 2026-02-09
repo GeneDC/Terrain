@@ -33,7 +33,7 @@ layout(set = 0, binding = 4, std430) restrict buffer AtomicBuffer {
 count_buffer;
 
 const float isoLevel = 0.5;
-const uint numCubesPerAxis = 64;
+const uint numCubesPerAxis = 32;
 const uint numPointsPerAxis = numCubesPerAxis + 1;
 
 vec4 InterpolateVerts(vec4 v1, vec4 v2)

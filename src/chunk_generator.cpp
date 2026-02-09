@@ -30,7 +30,7 @@ void ChunkGenerator::_bind_methods()
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "height_multiplier_noise", PROPERTY_HINT_RESOURCE_TYPE, "FastNoiseLite"), "set_height_multiplier_noise", "get_height_multiplier_noise");
 }
 
-PackedFloat32Array ChunkGenerator::generate_points(Vector3i chunk_pos)
+PackedFloat32Array ChunkGenerator::generate_points(Vector3i chunk_pos) const
 {
 	// NOTE: this currently generates a chunk size + 1 array, but a chunk only needs the the chunk size data and the extra data can be added before it's sent to the shader
 
@@ -77,6 +77,10 @@ Vector<float> ChunkGenerator::_generate_height_map(int p_size, const Vector3 &p_
 		print_error("height_multiplier_noise is invalid");
 		return height_map;
 	}
+
+	// Use the internal pointers to avid the overhead of the Ref<>
+	//FastNoiseLite* height_base_noise_ptr = height_base_noise.ptr();
+	//FastNoiseLite* height_multiplier_noise_ptr = height_multiplier_noise.ptr();
 
 	for (int x = 0; x < p_size; x++)
 	{

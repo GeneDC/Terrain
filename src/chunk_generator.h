@@ -13,7 +13,7 @@ public:
 	ChunkGenerator() = default;
 	~ChunkGenerator() override = default;
 
-	PackedFloat32Array generate_points(Vector3i chunk_pos);
+	PackedFloat32Array generate_points(Vector3i chunk_pos) const;
 
 	// Modifies where the terrain height should start int base_height_offset;
 	float base_height_offset = 0.0f;

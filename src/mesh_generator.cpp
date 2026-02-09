@@ -19,31 +19,22 @@ using namespace godot;
 #include "terrain_constants.hpp"
 using namespace terrain_constants;
 
-void MeshGenerator::_bind_methods()
-{
-	// Required to use call_deferred
-	ClassDB::bind_method(D_METHOD("_apply_mesh_data", "mesh", "arrays"), &MeshGenerator::_apply_mesh_data);
-}
-
 MeshGenerator::~MeshGenerator()
 {
 	if (local_rendering_device)
 	{
-		//local_rendering_device->free_rid(shader);
-		//local_rendering_device->free_rid(uniform_set);
-		//local_rendering_device->free_rid(pipeline);
-		local_rendering_device->free_rid(points_buffer);
-		local_rendering_device->free_rid(vertex_buffer);
-		local_rendering_device->free_rid(normal_buffer);
-		local_rendering_device->free_rid(count_buffer);
-
+		if (shader.is_valid()) local_rendering_device->free_rid(shader);
+		if (points_buffer.is_valid()) local_rendering_device->free_rid(points_buffer);
+		if (vertex_buffer.is_valid()) local_rendering_device->free_rid(vertex_buffer);
+		if (normal_buffer.is_valid()) local_rendering_device->free_rid(normal_buffer);
+		if (colour_buffer.is_valid()) local_rendering_device->free_rid(colour_buffer);
+		if (count_buffer.is_valid()) local_rendering_device->free_rid(count_buffer);
+		if (uniform_set.is_valid()) local_rendering_device->free_rid(uniform_set);
+		if (pipeline.is_valid()) local_rendering_device->free_rid(pipeline);
+		
 		memdelete(local_rendering_device);
+		local_rendering_device = nullptr;
 	}
-}
-
-void MeshGenerator::update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32Array points)
-{
-	_update_chunk_mesh(array_mesh, points);
 }
 
 bool MeshGenerator::init()
@@ -143,30 +134,33 @@ bool MeshGenerator::init()
 	return true;
 }
 
-void MeshGenerator::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32Array points)
+MeshData MeshGenerator::generate_mesh_data(Vector3i chunk_pos, PackedFloat32Array points)
 {
+	MeshData mesh_data{};
+	mesh_data.chunk_pos = chunk_pos;
+
 	if (rendering_thread_id == -1)
 	{
 		PRINT_ERROR("not initialised!");
-		return;
+		return mesh_data;
 	}
 
 	if (rendering_thread_id != OS::get_singleton()->get_thread_caller_id())
 	{
 		PRINT_ERROR("Thread id missmatch");
-		return;
+		return mesh_data;
 	}
 
 	if (!shader.is_valid())
 	{
 		PRINT_ERROR("Shader not initialized!");
-		return;
+		return mesh_data;
 	}
 
 	if (!local_rendering_device)
 	{
 		PRINT_ERROR("Not initalised");
-		return;
+		return mesh_data;
 	}
 
 	PackedByteArray points_byte_array = points.to_byte_array();
@@ -202,44 +196,30 @@ void MeshGenerator::_update_chunk_mesh(Ref<ArrayMesh> array_mesh, PackedFloat32A
 	PackedByteArray count_bytes = local_rendering_device->buffer_get_data(count_buffer);
 	uint32_t vertex_count = *reinterpret_cast<const uint32_t*>(count_bytes.ptr());
 
+	mesh_data.vertex_count = vertex_count;
+
 	if (vertex_count > 0)
 	{
-		Array mesh_arrays{};
-		mesh_arrays.resize(Mesh::ARRAY_MAX);
+		mesh_data.mesh_arrays.resize(Mesh::ARRAY_MAX);
 
 		PackedByteArray vertex_data = local_rendering_device->buffer_get_data(vertex_buffer, 0, vertex_count * sizeof(float) * 3);
 		PackedVector3Array vertices{};
 		vertices.resize(vertex_count);
 		memcpy(vertices.ptrw(), vertex_data.ptr(), vertex_data.size());
-		mesh_arrays[Mesh::ARRAY_VERTEX] = vertices;
+		mesh_data.mesh_arrays[Mesh::ARRAY_VERTEX] = std::move(vertices);
 
 		PackedByteArray normal_data = local_rendering_device->buffer_get_data(normal_buffer, 0, vertex_count * sizeof(float) * 3);
 		PackedVector3Array normals{};
 		normals.resize(vertex_count);
 		memcpy(normals.ptrw(), normal_data.ptr(), normal_data.size());
-		mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
+		mesh_data.mesh_arrays[Mesh::ARRAY_NORMAL] = std::move(normals);
 
 		//PackedColorArray colour_data = local_rendering_device->buffer_get_data(colour_buffer, 0, vertex_count * sizeof(float) * 4);
 		//PackedVector3Array colours{};
 		//colours.resize(vertex_count);
 		//memcpy(colours.ptrw(), colour_data.ptr(), colour_data.size());
-		//mesh_arrays[Mesh::ARRAY_COLOR] = colours;
-
-		call_deferred("_apply_mesh_data", array_mesh, mesh_arrays);
-	}
-}
-
-void MeshGenerator::_apply_mesh_data(Ref<ArrayMesh> array_mesh, Array mesh_arrays)
-{
-	if (!array_mesh.is_valid())
-	{
-		return;
+		//mesh_arrays[Mesh::ARRAY_COLOR] = std::move(colours);
 	}
 
-	if (array_mesh->get_surface_count() > 0)
-	{
-		array_mesh->clear_surfaces();
-	}
-
-	array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_arrays);
+	return mesh_data;
 }

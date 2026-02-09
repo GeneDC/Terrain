@@ -1,37 +1,28 @@
 extends Node
 
-@export var terrain := TerrainClass.new()
-
+var chunk_loader : ChunkLoader
 var chunk_positions: Array[Vector3i] = []
 
 func _ready() -> void:
 	call_deferred("init")
 
+func _exit_tree():
+	chunk_loader.stop()
+	
 func init() -> void:
-	terrain.init()
-	chunk_positions = generate_chunk_positions(10)
+	chunk_loader = get_node("ChunkLoader")
+	chunk_loader.init()
+	generate_chunks(20)
+	#chunk_positions = [Vector3.ZERO]
 
-func generate_chunk_positions(radius: int) -> Array[Vector3i]:
-	var positions: Array[Vector3i] = []
+func generate_chunks(radius: int) -> void:
 	for x in range(-radius, radius + 1):
 		for y in range(-5, 5 + 1):
 			for z in range(-radius, radius + 1):
-				positions.append(Vector3i(x, y, z))
-	
-	return positions
+				spawn_chunk(Vector3i(x, y, z))
 	
 func _process(_delta_time: float) -> void:
-	for i in range(1):
-		if not chunk_positions.is_empty():
-			spawn_chunk(chunk_positions.pop_back())
+	chunk_loader.update()
 
 func spawn_chunk(chunk_pos: Vector3i) -> void:
-	var mesh_data := ArrayMesh.new()
-	
-	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = mesh_data
-	mesh_instance.position = chunk_pos * 64
-	mesh_instance.name = "Chunk_%d_%d_%d" % [chunk_pos.x, chunk_pos.y, chunk_pos.z]
-	add_child(mesh_instance)
-	
-	terrain.update_chunk_mesh(mesh_data, chunk_pos)
+	chunk_loader.queue_chunk_update(chunk_pos)
